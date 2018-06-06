@@ -1,12 +1,14 @@
 package;
 
 import haxe.Timer;
+import lime.system.BackgroundWorker;
 import lime.tools.helpers.HaxelibHelper;
 import lime.tools.helpers.ProcessHelper;
 import lime.ui.FileDialog;
 import openfl.Assets;
 import openfl.display.Bitmap;
 import openfl.display.BitmapData;
+import openfl.display.FPS;
 import openfl.display.Shape;
 import openfl.display.Sprite;
 import openfl.display.DisplayObjectContainer;
@@ -19,8 +21,6 @@ import openfl.text.TextFormat;
 import openfl.ui.Keyboard;
 import sys.FileSystem;
 import sys.io.Process;
-import systools.Dialogs;
-import systools.FileUtils;
 
 import lime.project.Haxelib;
 import lime.project.Platform;
@@ -37,12 +37,19 @@ class Main extends DisplayObjectContainer
 	var logo:Bitmap;
 	var text:TextField;
 	var underline:Shape;
+	var underlineInt:Int = 0;
 	var list:Array<String> = ["haxe", "openfl", "lime"];
 	var version:Array<String> = [];
 	var path:Array<String> = [];
 	//-1 = version, 0 = searching, 1 = failed, 2 = needs update
 	var type:Array<Int> = [];
 	var infoInt:Int = -1;
+	var releaseArray:Array<String> = [];
+	var infoString:String = "";
+	//bool
+	var slideLeft:Bool = false;
+	var slideRight:Bool = false;
+	var slideSpeed:Float = 1;
 	
 
 	public function new() 
@@ -68,6 +75,7 @@ class Main extends DisplayObjectContainer
 		stage.addEventListener(Event.ENTER_FRAME, update);
 		stage.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
 		stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
+		stage.addEventListener(KeyboardEvent.KEY_UP, keyUp);
 		
 		//text display
 		text = new TextField();
@@ -84,6 +92,10 @@ class Main extends DisplayObjectContainer
 		underline.graphics.drawRect(0, 0, 1, 2);
 		underline.visible = false;
 		addChild(underline);
+		
+		#if debug
+		addChild(new FPS(10,10,0));
+		#end
 		
 		//aleart
 		//Lib.application.window.alert(null, null);
@@ -124,23 +136,22 @@ class Main extends DisplayObjectContainer
 	
 	public function infoHaxelib(lib:String)
 	{
+		var worker = new BackgroundWorker();
+		worker.doWork.add(function(message)
+		{
 		text.x = 0;
-		
 		var proc = new Process("haxelib", ["info", "openfl"]);
 		
-		var tim = new Timer(200);
+		var tim = new Timer(16);
 		var release:Bool = false;
 		var now:Date = Date.now();
-		var releaseArray:Array<String> = [];
+		releaseArray = [];
 		var line:String = "";
-		tim.run = function()
-		{
-		while (true)
+		while(true)
 		{
 		try
 		{
 		line = proc.stdout.readLine();
-		
 		if (release)
 		{
 		var date = Date.fromString(line.substring(0, "2018-05-17 00:16:54".length));
@@ -148,17 +159,22 @@ class Main extends DisplayObjectContainer
 		}else{
 		if (line.indexOf("Releases:") == 0) release = true;
 		}
-		
 		}catch (err:Dynamic)
 		{
-			break;
+			trace("realse " + releaseArray);
+			for (release in releaseArray)
+			{
+				text.appendText("\n" + release);
+			}
+			tim.stop();
+			worker.sendComplete(null);
+			return;
 		}
 		}
-		trace("realse " + releaseArray);
-		for (release in releaseArray) text.appendText("\n" + release);
-		tim.stop();
-		}
+		});
+		worker.run();
 	}
+	
 	
 	public static inline function dateText(newDate:Date, oldDate:Date):String
     {
@@ -300,7 +316,6 @@ class Main extends DisplayObjectContainer
 		var int = text.getLineIndexAtPoint(mouseX, mouseY - text.y);
 		if (int >= 0)
 		{
-			infoHaxelib(list[infoInt]);
 			
 			if (infoInt >= 0)
 			{
@@ -328,7 +343,10 @@ class Main extends DisplayObjectContainer
 			text.appendText(list[int] + "\n");
 			text.appendText("version: " + version[int] + "\n");
 			text.appendText("path: " + path[int] + "\n");
+			infoString = text.text;
 			infoInt = int;
+			//info
+			infoHaxelib(list[infoInt]);
 			}
 		}
 	}
@@ -343,18 +361,45 @@ class Main extends DisplayObjectContainer
 
 	public function keyDown(e:KeyboardEvent)
 	{
-		if (e.keyCode == Keyboard.BACKSPACE) refreshText();
+		switch(e.keyCode)
+		{
+			case Keyboard.BACKSPACE : refreshText();
+			case Keyboard.DOWN | Keyboard.S: if(text.scrollV < text.length)text.scrollV ++;
+			case Keyboard.UP | Keyboard.W: if (text.scrollV > 0) text.scrollV --;
+		case Keyboard.LEFT | Keyboard.A: 
+			slideLeft = true;
+			slideRight = false;
+			slideSpeed = 1;
+		case Keyboard.RIGHT | Keyboard.D: 
+			slideRight = true;
+			slideLeft = false;
+			slideSpeed = 1;
+		}
+	}
+	public function keyUp(e:KeyboardEvent)
+	{
+		switch(e.keyCode)
+		{
+			case Keyboard.LEFT | Keyboard.A: slideLeft = false;
+			case Keyboard.RIGHT | Keyboard.D: slideRight = false; 
+		}
 	}
 	public function update(_)
 	{
-		var underlineInt = text.getLineIndexAtPoint(mouseX, mouseY - text.y);
+		underlineInt = text.getLineIndexAtPoint(mouseX, mouseY - text.y);
 		if (underlineInt >= 0)
 		{
-			underline.y = (underlineInt + 1) * (16 + 4 - 2) + text.y;
+			underlineInt += -text.scrollV + 2;
+			underline.y = (underlineInt) * (16 + 4 - 2) + text.y;
 			underline.visible = true;
 		}else{
 			underline.visible = false;
 		}
+		//slide
+		trace("slideRight " + slideRight);
+		if(slideLeft) if (text.scrollH > 0) text.scrollH += -Math.floor(slideSpeed);
+		if (slideRight) if (text.scrollH < text.width) text.scrollH += Math.floor(slideSpeed);
+		if (slideRight || slideLeft) slideSpeed *= 2;
 	}
 	
 	

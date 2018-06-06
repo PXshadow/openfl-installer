@@ -15,9 +15,6 @@
 	<source path="src" />
 	<haxelib name="openfl" />
 	<haxelib name="actuate" />
-	<haxelib name="systools" />
-	
-	<ndll name="systools" haxelib="systools" />
 	
 	<!-- assets -->
 	<icon path="assets/openfl.svg" />
