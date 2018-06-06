@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	<!-- NMML reference: https://gist.github.com/1763850 -->
+	
+	<!-- metadata, make sure 'package' is at least 3 segments (ie. com.mycompany.myproject) -->
+	<meta title="OpenFL Installer" package="OpenFL Installer" version="1.0.0" company="" />
+	
+	<!-- output -->
+	<app main="Main" file="OpenFL installer" path="bin" />
+	
+	<window background="#FFFFFF" fps="20" width="600" height="300" resizable="false" />
+	<window orientation="landscape" vsync="false" antialiasing="0" if="cpp" />
+	
+	<!-- classpath, haxe libs -->
+	<source path="src" />
+	<haxelib name="openfl" />
+	<haxelib name="actuate" />
+	<haxelib name="systools" />
+	
+	<ndll name="systools" haxelib="systools" />
+	
+	<!-- assets -->
+	<icon path="assets/openfl.svg" />
+	<assets path="assets"/>
+	
+	<!-- optimize output
+	<haxeflag name="-dce full" /> -->
+	
+</project>
