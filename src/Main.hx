@@ -38,7 +38,7 @@ class Main extends DisplayObjectContainer
 	var text:TextField;
 	var underline:Shape;
 	var underlineInt:Int = 0;
-	var list:Array<String> = ["haxe", "openfl", "lime"];
+	var list:Array<String> = ["haxe", "openfl", "lime",""];
 	var version:Array<String> = [];
 	var path:Array<String> = [];
 	//-1 = version, 0 = searching, 1 = failed, 2 = needs update
@@ -161,7 +161,6 @@ class Main extends DisplayObjectContainer
 		}
 		}catch (err:Dynamic)
 		{
-			trace("realse " + releaseArray);
 			for (release in releaseArray)
 			{
 				text.appendText("\n" + release);
@@ -261,6 +260,9 @@ class Main extends DisplayObjectContainer
 				if (version[i] != "8.2.0") type[i] = 2;
 				case "lime":
 				if (version[i] != "4.3.0") type[i] = 2;
+				case "":
+				text.appendText("\n");
+				continue;
 			}
 			}
 			
@@ -314,7 +316,7 @@ class Main extends DisplayObjectContainer
 	public function mouseUp(e:MouseEvent)
 	{
 		var int = text.getLineIndexAtPoint(mouseX, mouseY - text.y);
-		if (int >= 0)
+		if (int >= 0 && list[int] != "")
 		{
 			
 			if (infoInt >= 0)
@@ -396,7 +398,6 @@ class Main extends DisplayObjectContainer
 			underline.visible = false;
 		}
 		//slide
-		trace("slideRight " + slideRight);
 		if(slideLeft) if (text.scrollH > 0) text.scrollH += -Math.floor(slideSpeed);
 		if (slideRight) if (text.scrollH < text.width) text.scrollH += Math.floor(slideSpeed);
 		if (slideRight || slideLeft) slideSpeed *= 2;
